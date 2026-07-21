@@ -1,12 +1,12 @@
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use anyhow::Result;
 use tokio::sync::RwLock;
 use tracing::debug;
 
-use crate::jwt::TokenMeta;
 use super::traits::AccessTokenRepository;
+use crate::jwt::TokenMeta;
 
 #[derive(Clone)]
 pub struct FakeAccessTokenRepository {
@@ -14,7 +14,11 @@ pub struct FakeAccessTokenRepository {
 }
 
 impl FakeAccessTokenRepository {
-    pub async fn new(_database_url: &str, _min_connections: u32, _max_connections: u32) -> Result<Self> {
+    pub async fn new(
+        _database_url: &str,
+        _min_connections: u32,
+        _max_connections: u32,
+    ) -> Result<Self> {
         Ok(Self {
             tokens: Arc::new(RwLock::new(HashMap::new())),
         })

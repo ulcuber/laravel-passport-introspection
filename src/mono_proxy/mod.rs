@@ -3,8 +3,5 @@
 mod app;
 mod route;
 
-pub use app::{
-    create_app,
-    MonoProxyAppState as AppState,
-};
+pub use app::{MonoProxyAppState as AppState, create_app};
 pub use route::handler as proxy_handler;

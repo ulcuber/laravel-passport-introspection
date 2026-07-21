@@ -1,16 +1,16 @@
 use std::env;
-use std::sync::Arc;
 use std::path::Path;
+use std::sync::Arc;
 
-use tokio::net::UnixListener;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use serde_json::json;
-use tracing::{info, error, debug};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::UnixListener;
+use tracing::{debug, error, info};
 
 use laravel_passport_introspection::{
     app::setup_logging,
     config::Config,
-    database::{create_token_repository, AnyAccessTokenRepository, AccessTokenRepository},
+    database::{AccessTokenRepository, AnyAccessTokenRepository, create_token_repository},
     jwt::{init_crypto, validate_jwt},
     token_cache::TokenCache,
 };
@@ -19,9 +19,13 @@ use laravel_passport_introspection::{
 async fn main() -> anyhow::Result<()> {
     setup_logging(module_path!())?;
 
-    let config = Config::from_env(None).map_err(|e| anyhow::anyhow!("Configuration error: {}", e))?;
+    let config =
+        Config::from_env(None).map_err(|e| anyhow::anyhow!("Configuration error: {}", e))?;
 
-    let socket_path = env::var("SOCKET_PATH").unwrap_or_else(|_| "/tmp/introspector.sock".to_string()).trim().to_string();
+    let socket_path = env::var("SOCKET_PATH")
+        .unwrap_or_else(|_| "/tmp/introspector.sock".to_string())
+        .trim()
+        .to_string();
     if Path::new(&socket_path).exists() {
         std::fs::remove_file(&socket_path)?;
     }
@@ -29,13 +33,22 @@ async fn main() -> anyhow::Result<()> {
     let listener = UnixListener::bind(&socket_path)?;
     info!("Listening on unix socket: {}", &socket_path);
 
-    let alg = config.get_algorithm().expect("Invalid JWT_ALGORITHM in config");
-    init_crypto(&config.jwt_public_key, alg, &config.client_id).expect("Failed to initialize crypto");
+    let alg = config
+        .get_algorithm()
+        .expect("Invalid JWT_ALGORITHM in config");
+    init_crypto(&config.jwt_public_key, alg, &config.client_id)
+        .expect("Failed to initialize crypto");
 
     let repo = create_token_repository(
-        &config.database_url, config.database_min_connections, config.database_max_connections,
-    ).await?;
-    let token_cache = Arc::new(TokenCache::new(config.token_cache_size, config.token_cache_ttl));
+        &config.database_url,
+        config.database_min_connections,
+        config.database_max_connections,
+    )
+    .await?;
+    let token_cache = Arc::new(TokenCache::new(
+        config.token_cache_size,
+        config.token_cache_ttl,
+    ));
 
     loop {
         let (mut stream, _) = listener.accept().await?;
@@ -66,7 +79,11 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
-async fn handle_request(repo: &AnyAccessTokenRepository, token_cache: &TokenCache, request: &str) -> String {
+async fn handle_request(
+    repo: &AnyAccessTokenRepository,
+    token_cache: &TokenCache,
+    request: &str,
+) -> String {
     let payload: serde_json::Value = match serde_json::from_str(request) {
         Ok(v) => v,
         Err(_) => {
@@ -78,7 +95,7 @@ async fn handle_request(repo: &AnyAccessTokenRepository, token_cache: &TokenCach
         Some(t) => t,
         None => {
             return json!({ "message": "Missing token" }).to_string();
-        },
+        }
     };
 
     match token_cache.get(&token) {
@@ -87,7 +104,8 @@ async fn handle_request(repo: &AnyAccessTokenRepository, token_cache: &TokenCach
             return json!({
                 "active": true,
                 "sub": claims.sub,
-            }).to_string();
+            })
+            .to_string();
         }
         None => {
             debug!("Token cache miss, validating JWT");
@@ -108,7 +126,8 @@ async fn handle_request(repo: &AnyAccessTokenRepository, token_cache: &TokenCach
                     return json!({
                         "active": true,
                         "sub": claims.sub,
-                    }).to_string();
+                    })
+                    .to_string();
                 }
                 Ok(true) => {
                     token_cache.put_invalid(&token);

@@ -1,11 +1,15 @@
 use std::sync::Arc;
 
 use axum::{
-    routing::{get, post},
-    middleware::from_fn_with_state,
     Router,
+    middleware::from_fn_with_state,
+    routing::{get, post},
 };
-use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::{SubscriberInitExt, TryInitError}};
+use tracing_subscriber::{
+    EnvFilter,
+    layer::SubscriberExt,
+    util::{SubscriberInitExt, TryInitError},
+};
 
 use crate::config::Config;
 use crate::database::{AnyAccessTokenRepository, create_token_repository};
@@ -13,7 +17,7 @@ use crate::jwt::init_crypto;
 use crate::token_cache::TokenCache;
 
 use crate::middlewares::{GatewayMiddlewareState, gateway_middleware};
-use crate::routes::{introspect_form_handler, introspect_json_handler, introspect_http_handler};
+use crate::routes::{introspect_form_handler, introspect_http_handler, introspect_json_handler};
 
 pub fn setup_logging(binary_name: &'static str) -> Result<(), TryInitError> {
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
@@ -37,14 +41,21 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new() -> anyhow::Result<Self> {
-        let config = Config::from_env(Some(".env.introspector")).map_err(|e| anyhow::anyhow!("Configuration error: {}", e))?;
+        let config = Config::from_env(Some(".env.introspector"))
+            .map_err(|e| anyhow::anyhow!("Configuration error: {}", e))?;
 
-        let alg = config.get_algorithm().expect("Invalid JWT_ALGORITHM in config");
-        init_crypto(&config.jwt_public_key, alg, &config.client_id).expect("Failed to initialize crypto");
+        let alg = config
+            .get_algorithm()
+            .expect("Invalid JWT_ALGORITHM in config");
+        init_crypto(&config.jwt_public_key, alg, &config.client_id)
+            .expect("Failed to initialize crypto");
 
         let access_tokens_repository = create_token_repository(
-            &config.database_url, config.database_min_connections, config.database_max_connections,
-        ).await?;
+            &config.database_url,
+            config.database_min_connections,
+            config.database_max_connections,
+        )
+        .await?;
 
         let token_cache = TokenCache::new(config.token_cache_size, config.token_cache_ttl);
 
@@ -56,7 +67,10 @@ impl AppState {
     }
 }
 
-pub async fn create_app(config: Config, access_tokens_repository: AnyAccessTokenRepository) -> Router {
+pub async fn create_app(
+    config: Config,
+    access_tokens_repository: AnyAccessTokenRepository,
+) -> Router {
     let token_cache = TokenCache::new(config.token_cache_size, config.token_cache_ttl);
 
     let gateway_state = Arc::new(GatewayMiddlewareState {

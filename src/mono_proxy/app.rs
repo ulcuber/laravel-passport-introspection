@@ -2,12 +2,7 @@
 
 use std::sync::Arc;
 
-use axum::{
-    Router,
-    body::Body,
-    routing::any,
-    middleware::from_fn_with_state,
-};
+use axum::{Router, body::Body, middleware::from_fn_with_state, routing::any};
 use hyper_util::client::legacy::Client;
 use hyper_util::client::legacy::connect::HttpConnector;
 

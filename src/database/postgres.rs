@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use sqlx::{postgres::PgPool, Row};
+use sqlx::{Row, postgres::PgPool};
 use tracing::info;
 
 use super::traits::AccessTokenRepository;
@@ -10,7 +10,11 @@ pub struct PgAccessTokenRepository {
 }
 
 impl PgAccessTokenRepository {
-    pub async fn new(database_url: &str, min_connections: u32, max_connections: u32) -> Result<Self> {
+    pub async fn new(
+        database_url: &str,
+        min_connections: u32,
+        max_connections: u32,
+    ) -> Result<Self> {
         let pool = sqlx::postgres::PgPoolOptions::new()
             .min_connections(min_connections)
             .max_connections(max_connections)
@@ -32,7 +36,8 @@ impl AccessTokenRepository for PgAccessTokenRepository {
 
         match row {
             Some(row) => {
-                let revoked: bool = row.try_get("revoked")
+                let revoked: bool = row
+                    .try_get("revoked")
                     .context("Failed to parse revoked column")?;
                 Ok(revoked)
             }
@@ -50,7 +55,7 @@ impl AccessTokenRepository for PgAccessTokenRepository {
             INSERT INTO oauth_access_tokens
             (id, user_id, client_id, name, scopes, revoked, created_at, updated_at, expires_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            "#
+            "#,
         )
         .bind(meta.id)
         .bind(meta.user_id)

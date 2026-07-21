@@ -1,10 +1,10 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
-use super::traits::AccessTokenRepository;
+use super::fake::FakeAccessTokenRepository;
 use super::mysql::MySqlAccessTokenRepository;
 use super::postgres::PgAccessTokenRepository;
-use super::fake::FakeAccessTokenRepository;
+use super::traits::AccessTokenRepository;
 
 #[derive(Clone)]
 pub enum AnyAccessTokenRepository {

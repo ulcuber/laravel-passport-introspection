@@ -1,10 +1,10 @@
-mod factory;
-mod traits;
 mod any;
+mod factory;
+pub mod fake;
 mod mysql;
 mod postgres;
-pub mod fake;
+mod traits;
 
-pub use factory::create_token_repository;
 pub use any::AnyAccessTokenRepository;
+pub use factory::create_token_repository;
 pub use traits::AccessTokenRepository;

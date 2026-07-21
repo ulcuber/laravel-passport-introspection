@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use sqlx::{mysql::MySqlPool, Row};
+use sqlx::{Row, mysql::MySqlPool};
 use tracing::info;
 
 use super::traits::AccessTokenRepository;
@@ -12,7 +12,11 @@ pub struct MySqlAccessTokenRepository {
 }
 
 impl MySqlAccessTokenRepository {
-    pub async fn new(database_url: &str, min_connections: u32, max_connections: u32) -> Result<Self> {
+    pub async fn new(
+        database_url: &str,
+        min_connections: u32,
+        max_connections: u32,
+    ) -> Result<Self> {
         let pool = sqlx::mysql::MySqlPoolOptions::new()
             .min_connections(min_connections)
             .max_connections(max_connections)
@@ -36,7 +40,8 @@ impl AccessTokenRepository for MySqlAccessTokenRepository {
 
         match row {
             Some(row) => {
-                let revoked: i32 = row.try_get("revoked")
+                let revoked: i32 = row
+                    .try_get("revoked")
                     .context("Failed to parse revoked column")?;
                 Ok(revoked == 1)
             }
@@ -54,7 +59,7 @@ impl AccessTokenRepository for MySqlAccessTokenRepository {
             INSERT INTO oauth_access_tokens
             (id, user_id, client_id, name, scopes, revoked, created_at, updated_at, expires_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            "#
+            "#,
         )
         .bind(meta.id)
         .bind(meta.user_id)

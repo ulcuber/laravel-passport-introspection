@@ -2,25 +2,25 @@ use std::sync::Arc;
 
 use axum::{
     extract::State,
-    http::{StatusCode, HeaderMap, HeaderValue},
+    http::{HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
 use tracing::{debug, error};
 
 use crate::app::AppState;
-use crate::jwt::validate_jwt;
 use crate::database::AccessTokenRepository;
+use crate::jwt::validate_jwt;
 
-pub async fn handler(
-    State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
-) -> Response {
-    match headers.get("X-Gateway-Secret").and_then(|v| v.to_str().ok()) {
+pub async fn handler(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Response {
+    match headers
+        .get("X-Gateway-Secret")
+        .and_then(|v| v.to_str().ok())
+    {
         Some(gateway_secret) => {
             if gateway_secret != state.config.gateway_secret {
                 return StatusCode::FORBIDDEN.into_response();
             }
-        },
+        }
         None => {
             return StatusCode::FORBIDDEN.into_response();
         }
@@ -42,7 +42,6 @@ pub async fn handler(
         .get("X-Client-Id")
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
-
 
     let claims = match state.token_cache.get(&token) {
         Some(claims) => {
@@ -82,12 +81,16 @@ pub async fn handler(
 
     let mut response = StatusCode::OK.into_response();
 
-    response.headers_mut().insert("X-Sub", to_header_value(&claims.sub));
+    response
+        .headers_mut()
+        .insert("X-Sub", to_header_value(&claims.sub));
     if let Some(aud) = &claims.aud {
         response.headers_mut().insert("X-Aud", to_header_value(aud));
     }
     if let Some(scope) = claims.scopes.as_ref().map(|s| s.join(" ")) {
-        response.headers_mut().insert("X-Scope", to_header_value(&scope));
+        response
+            .headers_mut()
+            .insert("X-Scope", to_header_value(&scope));
     }
 
     response

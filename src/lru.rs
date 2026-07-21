@@ -11,9 +11,7 @@ pub struct LruCacheWrapper<K: std::hash::Hash + std::cmp::Eq, V> {
 impl<K: std::hash::Hash + Eq + Clone, V: Clone> LruCacheWrapper<K, V> {
     pub fn new(capacity: usize) -> Self {
         Self {
-            inner: Mutex::new(LruCache::new(
-                NonZeroUsize::new(capacity).unwrap()
-            )),
+            inner: Mutex::new(LruCache::new(NonZeroUsize::new(capacity).unwrap())),
         }
     }
 
@@ -32,7 +30,7 @@ impl<K: std::hash::Hash + Eq + Clone, V: Clone> LruCacheWrapper<K, V> {
         cache.put(key, value);
     }
 
-     pub fn remove(&self, key: &K) {
+    pub fn remove(&self, key: &K) {
         let mut cache = self.inner.lock();
         cache.pop(key);
     }

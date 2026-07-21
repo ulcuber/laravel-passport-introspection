@@ -2,9 +2,7 @@ use std::fs;
 
 use once_cell::sync::Lazy;
 
-pub static FIXTURES: Lazy<Fixtures> = Lazy::new(|| {
-    Fixtures::load()
-});
+pub static FIXTURES: Lazy<Fixtures> = Lazy::new(|| Fixtures::load());
 
 pub struct Fixtures {
     pub jwt_public_key: String,

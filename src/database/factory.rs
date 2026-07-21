@@ -1,9 +1,9 @@
 use anyhow::Result;
 
 use super::any::AnyAccessTokenRepository;
+use super::fake::FakeAccessTokenRepository;
 use super::mysql::MySqlAccessTokenRepository;
 use super::postgres::PgAccessTokenRepository;
-use super::fake::FakeAccessTokenRepository;
 
 pub enum DatabaseType {
     MySql,
@@ -34,15 +34,20 @@ pub async fn create_token_repository(
 
     match db_type {
         DatabaseType::MySql => {
-            let repo = MySqlAccessTokenRepository::new(database_url, min_connections, max_connections).await?;
+            let repo =
+                MySqlAccessTokenRepository::new(database_url, min_connections, max_connections)
+                    .await?;
             Ok(AnyAccessTokenRepository::MySql(repo))
         }
         DatabaseType::Postgres => {
-            let repo = PgAccessTokenRepository::new(database_url, min_connections, max_connections).await?;
+            let repo = PgAccessTokenRepository::new(database_url, min_connections, max_connections)
+                .await?;
             Ok(AnyAccessTokenRepository::Postgres(repo))
         }
         DatabaseType::Fake => {
-            let repo = FakeAccessTokenRepository::new(database_url, min_connections, max_connections).await?;
+            let repo =
+                FakeAccessTokenRepository::new(database_url, min_connections, max_connections)
+                    .await?;
             Ok(AnyAccessTokenRepository::Fake(repo))
         }
     }

@@ -1,16 +1,16 @@
 use std::sync::Once;
 
-use axum_test::{TestServer, TestResponse, expect_json};
 use axum_test::http::StatusCode;
-use serde_json::json;
+use axum_test::{TestResponse, TestServer, expect_json};
 use jsonwebtoken::Algorithm;
+use serde_json::json;
 
 use laravel_passport_introspection::{
     app::{create_app, setup_logging},
     config::Config,
     database::AnyAccessTokenRepository,
     database::fake::FakeAccessTokenRepository,
-    jwt::{init_crypto, JWTClaims},
+    jwt::{JWTClaims, init_crypto},
 };
 
 mod helpers;
@@ -41,7 +41,12 @@ fn assert_ok_and_inactive(response: TestResponse) {
     }));
 }
 
-async fn setup_test_server() -> (String, AuthorizationServer, FakeAccessTokenRepository, TestServer) {
+async fn setup_test_server() -> (
+    String,
+    AuthorizationServer,
+    FakeAccessTokenRepository,
+    TestServer,
+) {
     let fixtures = &FIXTURES;
     let jwt_public_key = &fixtures.jwt_public_key;
     let jwt_private_key = &fixtures.jwt_private_key;
@@ -70,8 +75,12 @@ async fn setup_test_server() -> (String, AuthorizationServer, FakeAccessTokenRep
     let auth_server = AuthorizationServer::new(&jwt_private_key);
 
     let fake = FakeAccessTokenRepository::new(
-        &config.database_url, config.database_min_connections, config.database_max_connections,
-    ).await.unwrap();
+        &config.database_url,
+        config.database_min_connections,
+        config.database_max_connections,
+    )
+    .await
+    .unwrap();
 
     // Both `fake` clones share the same data because they point to the same data wrapped in Arc
     let app = create_app(config.clone(), AnyAccessTokenRepository::Fake(fake.clone())).await;
@@ -367,7 +376,7 @@ async fn test_invalid_json_body() {
     let response = app_server
         .post("/introspect-json")
         .add_header("X-Gateway-Secret", &gateway_secret)
-        .text("{ invalid json }")  // Malformed JSON
+        .text("{ invalid json }") // Malformed JSON
         .await;
 
     response.assert_status(StatusCode::UNSUPPORTED_MEDIA_TYPE);
@@ -419,10 +428,18 @@ async fn test_http_valid_token_with_aud_in_header() {
         .add_header("X-Token", token)
         .await;
 
-    response.assert_status_ok()
+    response
+        .assert_status_ok()
         .assert_header("X-Sub", claims.sub)
         .assert_header("X-Aud", client_id)
-        .assert_header("X-Scope", claims.scopes.as_ref().map(|s| s.join(" ")).unwrap_or_default());
+        .assert_header(
+            "X-Scope",
+            claims
+                .scopes
+                .as_ref()
+                .map(|s| s.join(" "))
+                .unwrap_or_default(),
+        );
 }
 
 #[tokio::test]
@@ -440,10 +457,18 @@ async fn test_http_strips_bearer_prefix_for_nginx() {
         .add_header("X-Token", format!("Bearer {}", token.to_string()))
         .await;
 
-    response.assert_status_ok()
+    response
+        .assert_status_ok()
         .assert_header("X-Sub", claims.sub)
         .assert_header("X-Aud", client_id)
-        .assert_header("X-Scope", claims.scopes.as_ref().map(|s| s.join(" ")).unwrap_or_default());
+        .assert_header(
+            "X-Scope",
+            claims
+                .scopes
+                .as_ref()
+                .map(|s| s.join(" "))
+                .unwrap_or_default(),
+        );
 }
 
 #[tokio::test]

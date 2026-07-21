@@ -1,5 +1,5 @@
-use jsonwebtoken::{encode, EncodingKey, Header, Algorithm};
 use chrono::Utc;
+use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use tracing::debug;
 use uuid::Uuid;
 
@@ -24,7 +24,11 @@ impl AuthorizationServer {
         self.laravel_user_access_token(client_id, -3600)
     }
 
-    fn laravel_user_access_token(&self, client_id: &str, expires_in_seconds: i64) -> (String, JWTClaims) {
+    fn laravel_user_access_token(
+        &self,
+        client_id: &str,
+        expires_in_seconds: i64,
+    ) -> (String, JWTClaims) {
         let now = Utc::now().timestamp_micros() as f64 / 1_000_000.0;
         let user_id = 12345;
 

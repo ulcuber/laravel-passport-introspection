@@ -2,14 +2,14 @@ use std::env;
 use std::fs;
 use std::io::Write;
 
-use anyhow::{anyhow, Result, Context};
-use chrono::{Utc, Duration};
-use jsonwebtoken::{encode, EncodingKey, Header, Algorithm};
+use anyhow::{Context, Result, anyhow};
+use chrono::{Duration, Utc};
+use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use uuid::Uuid;
 
 use laravel_passport_introspection::{
     config::Config,
-    database::{create_token_repository, AccessTokenRepository},
+    database::{AccessTokenRepository, create_token_repository},
     jwt::{JWTClaims, TokenMeta},
 };
 
@@ -18,17 +18,27 @@ async fn main() -> Result<()> {
     // already loads .env
     let config = Config::from_env(None).map_err(|e| anyhow!("Configuration error: {}", e))?;
 
-    let alg = config.get_algorithm().expect("Invalid JWT_ALGORITHM in config");
-    let client_id = config.client_id.unwrap_or_else(|| "019ed4fa-9bc6-73ef-ae5a-9b63ae58ca75".to_string());
+    let alg = config
+        .get_algorithm()
+        .expect("Invalid JWT_ALGORITHM in config");
+    let client_id = config
+        .client_id
+        .unwrap_or_else(|| "019ed4fa-9bc6-73ef-ae5a-9b63ae58ca75".to_string());
     let path = format!("wrk/tokens_{}.txt", config.jwt_algorithm);
 
-    let token_count: usize = env::var("TOKEN_COUNT").unwrap_or_else(|_| "1000".to_string()).parse()?;
-    let private_key_path = env::var("JWT_PRIVATE_KEY_PATH").expect("JWT_PRIVATE_KEY_PATH must be set");
+    let token_count: usize = env::var("TOKEN_COUNT")
+        .unwrap_or_else(|_| "1000".to_string())
+        .parse()?;
+    let private_key_path =
+        env::var("JWT_PRIVATE_KEY_PATH").expect("JWT_PRIVATE_KEY_PATH must be set");
     let private_key = fs::read_to_string(private_key_path)?;
 
     let repo = create_token_repository(
-        &config.database_url, config.database_min_connections, config.database_max_connections,
-    ).await?;
+        &config.database_url,
+        config.database_min_connections,
+        config.database_max_connections,
+    )
+    .await?;
     println!("Connected to database");
 
     println!("Generating {} tokens...", token_count);
@@ -109,23 +119,21 @@ async fn generate_and_insert_tokens(
 fn create_encoding_key(private_key: &str, alg: Algorithm) -> Result<EncodingKey> {
     match alg {
         // RSA variants - use RSA public key
-        Algorithm::RS256 | Algorithm::RS384 | Algorithm::RS512 |
-        Algorithm::PS256 | Algorithm::PS384 | Algorithm::PS512 => {
-            EncodingKey::from_rsa_pem(private_key.as_bytes())
-                .context("Invalid RSA private key format")
-        }
+        Algorithm::RS256
+        | Algorithm::RS384
+        | Algorithm::RS512
+        | Algorithm::PS256
+        | Algorithm::PS384
+        | Algorithm::PS512 => EncodingKey::from_rsa_pem(private_key.as_bytes())
+            .context("Invalid RSA private key format"),
 
         // ECDSA variants - use EC public key (same PEM format as RSA)
-        Algorithm::ES256 | Algorithm::ES384 => {
-            EncodingKey::from_ec_pem(private_key.as_bytes())
-                .context("Invalid EC private key format")
-        }
+        Algorithm::ES256 | Algorithm::ES384 => EncodingKey::from_ec_pem(private_key.as_bytes())
+            .context("Invalid EC private key format"),
 
         // EdDSA variant
-        Algorithm::EdDSA => {
-            EncodingKey::from_ed_pem(private_key.as_bytes())
-                .context("Invalid EdDSA private key format")
-        }
+        Algorithm::EdDSA => EncodingKey::from_ed_pem(private_key.as_bytes())
+            .context("Invalid EdDSA private key format"),
 
         // HMAC variants - use symmetric secret
         Algorithm::HS256 | Algorithm::HS384 | Algorithm::HS512 => {

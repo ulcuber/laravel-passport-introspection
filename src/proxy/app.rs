@@ -2,12 +2,7 @@
 
 use std::sync::Arc;
 
-use axum::{
-    routing::any,
-    Router,
-    body::Body,
-    middleware::from_fn_with_state,
-};
+use axum::{Router, body::Body, middleware::from_fn_with_state, routing::any};
 use hyper_util::client::legacy::Client;
 use hyper_util::client::legacy::connect::HttpConnector;
 
@@ -17,10 +12,7 @@ use crate::database::AnyAccessTokenRepository;
 use crate::middlewares::auth_middleware;
 use crate::token_cache::TokenCache;
 
-use super::{
-    ProxyConfig,
-    proxy_handler,
-};
+use super::{ProxyConfig, proxy_handler};
 
 pub struct ProxyAppState {
     pub routes: Arc<ProxyConfig>,

@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use axum::{
+    body::Body,
     extract::{Request, State},
     middleware::Next,
     response::Response,
-    body::Body,
 };
 
 use crate::responses::unauthorized_response;

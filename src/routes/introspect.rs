@@ -1,20 +1,17 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{State, Json, Form},
-    http::{StatusCode, HeaderMap},
+    extract::{Form, Json, State},
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
 use serde::{Deserialize, Serialize};
-use tracing::{error, debug};
+use tracing::{debug, error};
 
 use crate::app::AppState;
-use crate::jwt::validate_jwt;
-use crate::validation::{
-    ValidationException,
-    Validatable,
-};
 use crate::database::AccessTokenRepository;
+use crate::jwt::validate_jwt;
+use crate::validation::{Validatable, ValidationException};
 
 #[derive(Debug, Deserialize)]
 pub struct IntrospectRequest {
@@ -25,25 +22,28 @@ pub struct IntrospectRequest {
 
 impl Validatable for IntrospectRequest {
     fn validate(&self) -> Result<(), ValidationException> {
-        let token = self.token.as_ref()
-            .ok_or_else(|| ValidationException::new()
-                .add("token", "The token field is required"))?
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| ValidationException::new().add("token", "The token field is required"))?
             .trim();
 
         if token.is_empty() {
-            return Err(ValidationException::new()
-                .add("token", "The token field is required"));
+            return Err(ValidationException::new().add("token", "The token field is required"));
         }
 
         if token.len() < 10 {
-            return Err(ValidationException::new()
-                .add("token", "The token must be at least 10 characters"));
+            return Err(
+                ValidationException::new().add("token", "The token must be at least 10 characters")
+            );
         }
 
         if let Some(hint) = &self.token_type_hint {
             if hint != "access_token" && hint != "refresh_token" {
-                return Err(ValidationException::new()
-                    .add("token_type_hint", "Must be 'access_token' or 'refresh_token'"));
+                return Err(ValidationException::new().add(
+                    "token_type_hint",
+                    "Must be 'access_token' or 'refresh_token'",
+                ));
             }
         }
 
@@ -56,10 +56,10 @@ struct IntrospectResponse {
     pub active: bool,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub scope: Option<String>,  // Convert from scopes array (join with space)
+    pub scope: Option<String>, // Convert from scopes array (join with space)
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub scopes: Option<Vec<String>>,  // Original Laravel format
+    pub scopes: Option<Vec<String>>, // Original Laravel format
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub client_id: Option<String>,
@@ -114,7 +114,8 @@ fn invalid_token() -> Response {
             jti: None,
             user_id: None,
         }),
-    ).into_response()
+    )
+        .into_response()
 }
 
 pub async fn form_handler(
@@ -195,20 +196,24 @@ pub async fn token_handler(
         }
     };
 
-    (StatusCode::OK, Json(IntrospectResponse {
-        active: true,
-        scope: claims.scopes.as_ref().map(|s| s.join(" ")),
-        scopes: claims.scopes,
-        client_id: claims.client_id,
-        username: claims.username,
-        token_type: Some("Bearer".to_string()),
-        exp: Some(claims.exp),
-        iat: Some(claims.iat),
-        nbf: Some(claims.nbf),
-        sub: Some(claims.sub),
-        aud: claims.aud,
-        iss: claims.iss,
-        jti: Some(claims.jti),
-        user_id: claims.user_id,
-    })).into_response()
+    (
+        StatusCode::OK,
+        Json(IntrospectResponse {
+            active: true,
+            scope: claims.scopes.as_ref().map(|s| s.join(" ")),
+            scopes: claims.scopes,
+            client_id: claims.client_id,
+            username: claims.username,
+            token_type: Some("Bearer".to_string()),
+            exp: Some(claims.exp),
+            iat: Some(claims.iat),
+            nbf: Some(claims.nbf),
+            sub: Some(claims.sub),
+            aud: claims.aud,
+            iss: claims.iss,
+            jti: Some(claims.jti),
+            user_id: claims.user_id,
+        }),
+    )
+        .into_response()
 }

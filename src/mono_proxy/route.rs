@@ -6,17 +6,16 @@ use axum::{
     body::Body,
     extract::{Request, State},
     http::{StatusCode, Uri},
-    response::{Response, IntoResponse},
+    response::{IntoResponse, Response},
 };
 use tracing::debug;
 
 use super::AppState;
 
-pub async fn handler(
-    State(state): State<Arc<AppState>>,
-    mut req: Request<Body>,
-) -> Response {
-    let full_path = req.uri().path_and_query()
+pub async fn handler(State(state): State<Arc<AppState>>, mut req: Request<Body>) -> Response {
+    let full_path = req
+        .uri()
+        .path_and_query()
         .map(|pq| pq.as_str())
         .unwrap_or("");
     let full_target = format!("{}{}", state.target.clone(), full_path);
@@ -30,7 +29,7 @@ pub async fn handler(
             let axum_body = Body::new(body);
 
             Response::from_parts(parts, axum_body)
-        },
+        }
         Err(e) => {
             debug!("{}", e);
             (StatusCode::BAD_GATEWAY, "Service Unavailable").into_response()

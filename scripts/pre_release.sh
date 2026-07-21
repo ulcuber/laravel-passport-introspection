@@ -9,6 +9,7 @@ else
     echo "Current version: $VERSION"
 fi
 
+cargo fmt
 cargo tree --depth 1 2>/dev/null | head -1
 
 if [[ $(git tag --list "v$VERSION") ]]; then

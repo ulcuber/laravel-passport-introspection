@@ -1,11 +1,8 @@
 use anyhow::Result;
-use chrono::{Utc, Duration};
+use chrono::{Duration, Utc};
 
 use laravel_passport_introspection::{
-    database::{
-        AccessTokenRepository,
-        fake::FakeAccessTokenRepository,
-    },
+    database::{AccessTokenRepository, fake::FakeAccessTokenRepository},
     jwt::{JWTClaims, TokenMeta},
 };
 
@@ -30,7 +27,9 @@ impl FakeRepoExt for FakeAccessTokenRepository {
             created_at: now_naive,
             updated_at: now_naive,
             expires_at: (now + Duration::hours(1)).naive_utc(),
-        }).await.expect("Failed to add test token");
+        })
+        .await
+        .expect("Failed to add test token");
 
         Ok(())
     }

@@ -9,8 +9,6 @@ else
     echo "Current version: $VERSION"
 fi
 
-
-cargo fmt
 cargo test --test integration_test --features write-tokens || exit 1
 
 cargo build --release || exit 1

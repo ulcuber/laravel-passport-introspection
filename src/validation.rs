@@ -2,8 +2,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json, Response},
 };
-use serde_json::{Map, Value};
 use serde::Serialize;
+use serde_json::{Map, Value};
 
 #[derive(Debug, Clone)]
 pub struct ValidationException {
@@ -70,7 +70,7 @@ impl IntoResponse for ValidationException {
     fn into_response(self) -> Response {
         let body = LaravelResponse {
             message: self.message,
-            errors: (!self.errors.is_empty()).then_some(self.errors)
+            errors: (!self.errors.is_empty()).then_some(self.errors),
         };
 
         (self.status, Json(body)).into_response()

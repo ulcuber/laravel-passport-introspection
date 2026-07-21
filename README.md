@@ -5,6 +5,8 @@
 
 See 2015 OAuth 2.0 Token Introspection <https://datatracker.ietf.org/doc/html/rfc7662>
 
+[Why?](https://gist.github.com/ulcuber/7b098e5e9d5e3cd106aeefbafb950974)
+
 ```mermaid
 flowchart TB
     LaravelPassport["<b>Authorization&nbsp;Server</b><br/>Laravel Passport"]
@@ -62,10 +64,10 @@ flowchart TB
 
 ## Performance
 
-- ~107k RPS for self
+- ~107-136k RPS for self
 - ~2.1k RPS NGINX { `auth_request` + Octane (2.6k RPS self) }
 
-See [Benchmarking Results](docs/benchmarking-results.md) for more info
+See [Benchmarking Results](https://github.com/ulcuber/laravel-passport-introspection/blob/main/docs/benchmark-results.md) for more info
 
 HTTP only non-RFC (`/introspect-http`) is faster and has twice less bandwidth. It is the only way to for NGINX `auth_request` to work
 
@@ -323,9 +325,9 @@ cargo run --release --bin mono_proxy --features proxy
 # As Library for Rust microservices
 
 ```bash
-cargo add laravel-passport-introspection --git https://github.com/ulcuber/laravel-passport-introspection --tag v0.1.0
+cargo add laravel-passport-introspection --git https://github.com/ulcuber/laravel-passport-introspection --tag v0.1.1
 ```
 
 See example:
 
-<https://github.com/ulcuber/axum-slots/tree/main/src/bin/monolithic_auth_slots.rs>
+<https://github.com/ulcuber/axum-slots/blob/383fc661000ba89612d03672a533866615483fe0/src/app.rs#L40>

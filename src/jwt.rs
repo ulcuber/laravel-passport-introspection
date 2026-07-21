@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
-use once_cell::sync::OnceCell;
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+use anyhow::{Context, Result, anyhow};
 use jsonwebtoken::errors::ErrorKind;
-use anyhow::{anyhow, Result, Context};
+use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode};
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
@@ -11,15 +11,25 @@ static DECODING_KEY: OnceCell<DecodingKey> = OnceCell::new();
 static CONFIGURED_ALGORITHM: OnceCell<Algorithm> = OnceCell::new();
 static VALIDATION: OnceCell<Validation> = OnceCell::new();
 
-pub fn init_crypto(public_key: &str, alg: Algorithm, config_client_id: &Option<String>) -> Result<()> {
+pub fn init_crypto(
+    public_key: &str,
+    alg: Algorithm,
+    config_client_id: &Option<String>,
+) -> Result<()> {
     let key = create_decoding_key(public_key, alg)?;
 
-    DECODING_KEY.set(key).map_err(|_| anyhow!("Crypto already initialized"))?;
-    CONFIGURED_ALGORITHM.set(alg).map_err(|_| anyhow!("Algorithm already initialized"))?;
+    DECODING_KEY
+        .set(key)
+        .map_err(|_| anyhow!("Crypto already initialized"))?;
+    CONFIGURED_ALGORITHM
+        .set(alg)
+        .map_err(|_| anyhow!("Algorithm already initialized"))?;
 
     let validation = create_base_validation(alg, config_client_id);
 
-    VALIDATION.set(validation).map_err(|_| anyhow!("Validation already initialized"))?;
+    VALIDATION
+        .set(validation)
+        .map_err(|_| anyhow!("Validation already initialized"))?;
 
     debug!("Crypto initialized with algorithm: {:?}", alg);
     Ok(())
@@ -35,7 +45,9 @@ fn create_base_validation(alg: Algorithm, config_client_id: &Option<String>) -> 
         debug!("Using CLIENT_ID if there is no X-Client-Id header");
     } else {
         v.validate_aud = false;
-        debug!("No CLIENT_ID provided - skipping audience validation if there is no X-Client-Id header");
+        debug!(
+            "No CLIENT_ID provided - skipping audience validation if there is no X-Client-Id header"
+        );
     }
 
     v
@@ -85,7 +97,9 @@ pub struct TokenMeta {
 
 pub fn validate_jwt(token: &str, client_id_from_header: Option<String>) -> Result<JWTClaims> {
     let decoding_key = DECODING_KEY.get().expect("Crypto not initialized");
-    let expected_alg = *CONFIGURED_ALGORITHM.get().expect("Algorithm not initialized");
+    let expected_alg = *CONFIGURED_ALGORITHM
+        .get()
+        .expect("Algorithm not initialized");
 
     let header = jsonwebtoken::decode_header(token)
         .context("Invalid JWT format: failed to decode header")?;
@@ -110,22 +124,20 @@ pub fn validate_jwt(token: &str, client_id_from_header: Option<String>) -> Resul
         } else {
             v.validate_aud = false;
         }
-        custom_validation = v;  // Move to outer scope
+        custom_validation = v; // Move to outer scope
         &custom_validation
     } else {
         // reference to static, NO CLONE
         VALIDATION.get().expect("Validation not initialized")
     };
 
-    let token_data = decode::<JWTClaims>(token, &decoding_key, validation_ref)
-        .map_err(|e| {
-            match e.kind() {
-                ErrorKind::MissingRequiredClaim(claim) => {
-                    anyhow!("Missing required claim: {}", claim)
-                }
-                _ => {
-                    anyhow!("Token validation failed: {:#}", e)
-                }
+    let token_data =
+        decode::<JWTClaims>(token, &decoding_key, validation_ref).map_err(|e| match e.kind() {
+            ErrorKind::MissingRequiredClaim(claim) => {
+                anyhow!("Missing required claim: {}", claim)
+            }
+            _ => {
+                anyhow!("Token validation failed: {:#}", e)
             }
         })?;
 
@@ -137,23 +149,22 @@ pub fn validate_jwt(token: &str, client_id_from_header: Option<String>) -> Resul
 fn create_decoding_key(public_key: &str, alg: Algorithm) -> Result<DecodingKey> {
     match alg {
         // RSA variants - use RSA public key
-        Algorithm::RS256 | Algorithm::RS384 | Algorithm::RS512 |
-        Algorithm::PS256 | Algorithm::PS384 | Algorithm::PS512 => {
-            DecodingKey::from_rsa_pem(public_key.as_bytes())
-                .context("Invalid RSA public key format")
-        }
+        Algorithm::RS256
+        | Algorithm::RS384
+        | Algorithm::RS512
+        | Algorithm::PS256
+        | Algorithm::PS384
+        | Algorithm::PS512 => DecodingKey::from_rsa_pem(public_key.as_bytes())
+            .context("Invalid RSA public key format"),
 
         // ECDSA variants - use EC public key (same PEM format as RSA)
         Algorithm::ES256 | Algorithm::ES384 => {
-            DecodingKey::from_ec_pem(public_key.as_bytes())
-                .context("Invalid EC public key format")
+            DecodingKey::from_ec_pem(public_key.as_bytes()).context("Invalid EC public key format")
         }
 
         // EdDSA variant
-        Algorithm::EdDSA => {
-            DecodingKey::from_ed_pem(public_key.as_bytes())
-                .context("Invalid EdDSA public key format")
-        }
+        Algorithm::EdDSA => DecodingKey::from_ed_pem(public_key.as_bytes())
+            .context("Invalid EdDSA public key format"),
 
         // HMAC variants - use symmetric secret
         Algorithm::HS256 | Algorithm::HS384 | Algorithm::HS512 => {

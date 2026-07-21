@@ -1,10 +1,10 @@
 use std::env;
 use std::fs;
 
-use dotenvy::{dotenv, from_filename_override};
-use serde::Deserialize;
-use jsonwebtoken::Algorithm;
 use anyhow::{Context, Result};
+use dotenvy::{dotenv, from_filename_override};
+use jsonwebtoken::Algorithm;
+use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
@@ -67,8 +67,13 @@ impl Config {
                 fs::read_to_string(&key_path)
                     .with_context(|| format!("Failed to read JWT public key from {}", key_path))?
             }
-        }).trim().to_string();
-        validate_non_empty(&jwt_public_key, "JWT_PUBLIC_KEY or JWT_PUBLIC_KEY_PATH file content")?;
+        })
+        .trim()
+        .to_string();
+        validate_non_empty(
+            &jwt_public_key,
+            "JWT_PUBLIC_KEY or JWT_PUBLIC_KEY_PATH file content",
+        )?;
 
         let jwt_algorithm = env::var("JWT_ALGORITHM")
             .unwrap_or_else(|_| "RS256".to_string())
