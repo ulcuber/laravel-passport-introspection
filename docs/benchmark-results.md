@@ -121,19 +121,19 @@ cargo run --release
 Running 1m test @ http://localhost:8080/introspect-http
   12 threads and 400 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     3.05ms    4.23ms 273.28ms   98.76%
-    Req/Sec    11.41k     0.89k   20.26k    91.31%
-  8181577 requests in 1.00m, 1.13GB read
-Requests/sec: 136144.49
-Transfer/sec:     19.33MB
+    Latency     2.56ms    1.27ms  11.93ms   65.89%
+    Req/Sec    13.00k   671.90    26.17k    85.22%
+  9331461 requests in 1.00m, 1.29GB read
+Requests/sec: 155281.90
+Transfer/sec:     22.05MB
 ```
 
-## 10M requests with same token (same user DDOS, max cache usage)
+## 20M requests with same token (same user DDOS, max cache usage)
 
 ```env
 TOKEN_CACHE_SIZE=1000
 TOKEN_CACHE_TTL=60
-WRK_ROTATE_EVERY=10000000
+WRK_ROTATE_EVERY=20000000
 ```
 
 ```bash
@@ -145,11 +145,11 @@ cargo run --release
 Running 1m test @ http://localhost:8080/introspect-http
   12 threads and 400 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     1.79ms    1.01ms  99.62ms   75.14%
-    Req/Sec    18.56k     1.39k   55.96k    76.32%
-  13325560 requests in 1.00m, 1.82GB read
-Requests/sec: 221733.37
-Transfer/sec:     31.08MB
+    Latency     1.75ms    0.88ms  10.48ms   69.80%
+    Req/Sec    19.03k     1.43k   51.13k    77.26%
+  13658635 requests in 1.00m, 1.87GB read
+Requests/sec: 227290.25
+Transfer/sec:     31.86MB
 ```
 
 # Laravel Octane app no auth
@@ -258,10 +258,10 @@ try_files "" @fpm;
 `/etc/php/php-fpm.d/www.conf`:
 
 ```conf
-pm.max_children = 400
-pm.start_servers = 300
-pm.min_spare_servers = 200
-pm.max_spare_servers = 400
+pm.max_children = 800
+pm.start_servers = 400
+pm.min_spare_servers = 400
+pm.max_spare_servers = 800
 ```
 
 ```bash
@@ -273,13 +273,18 @@ cargo run --release
 Running 1m test @ http://slots.localhost/api/slots/availability
   12 threads and 400 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency   360.55ms  185.85ms   2.00s    68.00%
-    Req/Sec    91.50     31.62   277.00     74.51%
-  65944 requests in 1.00m, 139.56MB read
-  Socket errors: connect 0, read 0, write 0, timeout 59
-  Non-2xx or 3xx responses: 149
-Requests/sec:   1097.28
-Transfer/sec:      2.32MB
+    Latency   355.82ms  179.47ms   2.00s    82.40%
+    Req/Sec    92.90     27.81   313.00     69.34%
+  Latency Distribution
+     50%  358.08ms
+     75%  458.97ms
+     90%  510.31ms
+     99%    1.02s
+  66857 requests in 1.00m, 141.29MB read
+  Socket errors: connect 0, read 0, write 0, timeout 270
+  Non-2xx or 3xx responses: 275
+Requests/sec:   1112.48
+Transfer/sec:      2.35MB
 ```
 
 ### Octane
@@ -302,12 +307,17 @@ cargo run --release
 Running 1m test @ http://slots.localhost/api/slots/availability
   12 threads and 400 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency   183.11ms   73.14ms   1.06s    86.75%
-    Req/Sec   183.75     40.06   320.00     72.29%
-  131995 requests in 1.00m, 275.73MB read
+    Latency   175.64ms   79.63ms 961.20ms   87.95%
+    Req/Sec   193.70     40.78   323.00     71.21%
+  Latency Distribution
+     50%  151.77ms
+     75%  175.17ms
+     90%  268.02ms
+     99%  560.35ms
+  139238 requests in 1.00m, 290.88MB read
   Non-2xx or 3xx responses: 227
-Requests/sec:   2196.46
-Transfer/sec:      4.59MB
+Requests/sec:   2316.99
+Transfer/sec:      4.84MB
 ```
 
 ### Rust Axum service
@@ -334,11 +344,17 @@ cargo run --release
 Running 1m test @ http://slots.localhost/api/slots/availability
   12 threads and 400 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency    44.12ms    7.10ms 382.34ms   99.25%
-    Req/Sec   754.15     49.10     1.08k    87.80%
-  541711 requests in 1.00m, 547.61MB read
-Requests/sec:   9014.97
-Transfer/sec:      9.11MB
+    Latency   184.05ms  302.39ms   1.28s    81.72%
+    Req/Sec     2.10k   485.08     5.48k    70.65%
+  Latency Distribution
+     50%    9.00ms
+     75%  279.99ms
+     90%  740.86ms
+     99%    1.02s
+  1508967 requests in 1.00m, 1.49GB read
+  Socket errors: connect 0, read 0, write 0, timeout 37
+Requests/sec:  25108.84
+Transfer/sec:     25.38MB
 ```
 
 ## HTTP over sockets
@@ -365,11 +381,16 @@ cargo run --release --bin proxy --features proxy
 Running 1m test @ http://localhost:8080/api/slots/availability
   12 threads and 400 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     9.46ms    5.25ms 234.53ms   92.67%
-    Req/Sec     3.57k   270.13     6.08k    85.81%
-  2565721 requests in 1.00m, 2.38GB read
-Requests/sec:  42699.23
-Transfer/sec:     40.52MB
+    Latency     7.86ms    2.80ms  46.27ms   70.52%
+    Req/Sec     4.22k   259.22    10.20k    78.01%
+  Latency Distribution
+     50%    7.57ms
+     75%    9.50ms
+     90%   11.48ms
+     99%   15.49ms
+  3034045 requests in 1.00m, 2.81GB read
+Requests/sec:  50492.17
+Transfer/sec:     47.91MB
 ```
 
 # Introspection Mono-Proxy
@@ -393,11 +414,16 @@ cargo run --release --bin mono_proxy --features proxy
 Running 1m test @ http://localhost:8080/slots/availability
   12 threads and 400 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     9.16ms    3.81ms 176.23ms   82.53%
-    Req/Sec     3.65k   264.92     8.44k    86.14%
-  2622139 requests in 1.00m, 2.43GB read
-Requests/sec:  43633.18
-Transfer/sec:     41.40MB
+    Latency     7.93ms    2.81ms  48.37ms   69.92%
+    Req/Sec     4.18k   244.09     8.90k    75.53%
+  Latency Distribution
+     50%    7.64ms
+     75%    9.61ms
+     90%   11.62ms
+     99%   15.49ms
+  3002729 requests in 1.00m, 2.78GB read
+Requests/sec:  49969.63
+Transfer/sec:     47.42MB
 ```
 
 ## Octane service
@@ -419,12 +445,17 @@ cargo run --release --bin mono_proxy --features proxy
 Running 1m test @ http://localhost:8080/slots/availability
   12 threads and 400 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency   164.64ms   80.04ms   1.17s    88.04%
-    Req/Sec   208.01     41.59   333.00     71.15%
-  149382 requests in 1.00m, 309.97MB read
+    Latency   157.78ms   80.48ms   1.16s    88.40%
+    Req/Sec   217.72     44.35   333.00     74.83%
+  Latency Distribution
+     50%  136.22ms
+     75%  144.77ms
+     90%  249.34ms
+     99%  575.27ms
+  156431 requests in 1.00m, 324.62MB read
   Non-2xx or 3xx responses: 227
-Requests/sec:   2485.78
-Transfer/sec:      5.16MB
+Requests/sec:   2603.20
+Transfer/sec:      5.40MB
 ```
 
 # socketsd
@@ -473,9 +504,14 @@ cargo run --release
 Running 1m test @ http://localhost:8081/slots/availability
   12 threads and 400 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     6.25ms    2.32ms 170.72ms   94.19%
-    Req/Sec     5.36k   535.32    10.84k    75.33%
-  3845985 requests in 1.00m, 3.56GB read
-Requests/sec:  64001.39
-Transfer/sec:     60.73MB
+    Latency     4.87ms    1.33ms  33.81ms   77.50%
+    Req/Sec     6.83k   324.22    15.08k    83.77%
+  Latency Distribution
+     50%    4.74ms
+     75%    5.53ms
+     90%    6.32ms
+     99%    8.05ms
+  4903203 requests in 1.00m, 4.54GB read
+Requests/sec:  81586.86
+Transfer/sec:     77.42MB
 ```

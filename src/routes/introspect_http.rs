@@ -9,7 +9,7 @@ use tracing::{debug, error};
 
 use crate::app::AppState;
 use crate::database::AccessTokenRepository;
-use crate::jwt::validate_jwt;
+use crate::jwt::{JWTClaims, validate_jwt};
 
 pub async fn handler(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Response {
     match headers
@@ -43,42 +43,53 @@ pub async fn handler(State(state): State<Arc<AppState>>, headers: HeaderMap) -> 
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
 
-    let claims = match state.token_cache.get(&token) {
-        Some(claims) => {
-            debug!("Token cache hit (valid)");
-            claims
-        }
-        None => {
-            debug!("Token cache miss, validating JWT");
+    if let Some(claims) = state.token_cache.get(&token) {
+        debug!("Token cache hit (valid)");
 
-            let claims = match validate_jwt(&token, client_id) {
-                Ok(c) => c,
-                Err(e) => {
-                    debug!("{}", e);
-                    state.token_cache.put_invalid(&token);
-                    return StatusCode::UNAUTHORIZED.into_response();
-                }
-            };
+        return build_response(claims);
+    }
 
-            match state.access_tokens.is_token_revoked(&claims.jti).await {
-                Ok(false) => {
-                    state.token_cache.put_valid(&token, claims.clone());
+    if let Some(claims) = state.token_cache.lock(&token).await {
+        return build_response(claims);
+    }
 
-                    claims
-                }
-                Ok(true) => {
-                    state.token_cache.put_invalid(&token);
+    debug!("Token cache miss, validating JWT");
 
-                    return StatusCode::UNAUTHORIZED.into_response();
-                }
-                Err(e) => {
-                    error!("Database error while checking token: {}", e);
-                    return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-                }
-            }
+    let claims = match validate_jwt(&token, client_id) {
+        Ok(c) => c,
+        Err(e) => {
+            debug!("{}", e);
+            state.token_cache.put_invalid(&token);
+            state.token_cache.unlock(&token);
+
+            return StatusCode::UNAUTHORIZED.into_response();
         }
     };
 
+    match state.access_tokens.is_token_revoked(&claims.jti).await {
+        Ok(false) => {
+            state.token_cache.put_valid(&token, claims.clone());
+        }
+        Ok(true) => {
+            state.token_cache.put_invalid(&token);
+            state.token_cache.unlock(&token);
+
+            return StatusCode::UNAUTHORIZED.into_response();
+        }
+        Err(e) => {
+            error!("Database error while checking token: {}", e);
+            state.token_cache.unlock(&token);
+
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
+
+    state.token_cache.unlock(&token);
+
+    build_response(claims)
+}
+
+fn build_response(claims: JWTClaims) -> Response {
     let mut response = StatusCode::OK.into_response();
 
     response

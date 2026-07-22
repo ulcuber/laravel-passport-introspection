@@ -13,4 +13,5 @@ fi
 wrk \
         --threads "$(($(nproc) * 2))" --connections 400 --duration 60s \
         --script "./wrk/$1.lua" \
-        "$PROXY_URL"
+        --latency \
+        "$PROXY_URL" | wrk2img "wrk/graphs/proxy_$1.png"

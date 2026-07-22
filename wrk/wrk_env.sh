@@ -13,4 +13,5 @@ fi
 wrk \
         --threads "$(($(nproc) * 2))" --connections 400 --duration 60s \
         --script "./wrk/$1$2.lua" \
-        "http://localhost:${SERVER_PORT}/introspect$2"
+        --latency \
+        "http://localhost:${SERVER_PORT}/introspect$2" | wrk2img "wrk/graphs/self_$1$2.png"

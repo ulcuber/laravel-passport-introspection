@@ -325,7 +325,7 @@ cargo run --release --bin mono_proxy --features proxy
 # As Library for Rust microservices
 
 ```bash
-cargo add laravel-passport-introspection --git https://github.com/ulcuber/laravel-passport-introspection --tag v0.1.1
+cargo add laravel-passport-introspection --git https://github.com/ulcuber/laravel-passport-introspection --tag v0.2.0
 ```
 
 See example:

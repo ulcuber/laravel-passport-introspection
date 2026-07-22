@@ -20,6 +20,11 @@ impl<K: std::hash::Hash + Eq + Clone, V: Clone> LruCacheWrapper<K, V> {
         cache.len()
     }
 
+    pub fn has(&self, key: &K) -> bool {
+        let cache = self.inner.lock();
+        cache.contains(key)
+    }
+
     pub fn get(&self, key: &K) -> Option<V> {
         let mut cache = self.inner.lock();
         cache.get(key).cloned()

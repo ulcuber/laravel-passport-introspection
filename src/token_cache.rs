@@ -1,11 +1,15 @@
+use std::collections::HashSet;
 use std::time::{Duration, Instant};
+
+use parking_lot::Mutex;
 
 use crate::jwt::JWTClaims;
 use crate::lru::LruCacheWrapper;
 
 pub struct TokenCache {
     valid: LruCacheWrapper<String, (JWTClaims, Instant)>,
-    invalid: LruCacheWrapper<String, Instant>,
+    invalid: LruCacheWrapper<String, bool>,
+    computing: Mutex<HashSet<String>>,
     ttl: Duration,
 }
 
@@ -15,17 +19,14 @@ impl TokenCache {
         Self {
             valid: LruCacheWrapper::new(half),
             invalid: LruCacheWrapper::new(half),
+            computing: Mutex::new(HashSet::new()),
             ttl: Duration::from_secs(ttl_secs),
         }
     }
 
     pub fn get(&self, token: &str) -> Option<JWTClaims> {
-        if let Some(cached_at) = self.invalid.get(&token.to_string()) {
-            if cached_at.elapsed() < self.ttl {
-                return None;
-            } else {
-                self.invalid.remove(&token.to_string());
-            }
+        if self.invalid.has(&token.to_string()) {
+            return None;
         }
 
         if let Some((claims, cached_at)) = self.valid.get(&token.to_string()) {
@@ -37,7 +38,7 @@ impl TokenCache {
             let now = chrono::Utc::now().timestamp() as f64;
             if claims.exp < now {
                 self.valid.remove(&token.to_string());
-                self.invalid.put(token.to_string(), Instant::now());
+                self.invalid.put(token.to_string(), true);
                 return None;
             }
 
@@ -47,6 +48,29 @@ impl TokenCache {
         None
     }
 
+    pub async fn lock(&self, token: &str) -> Option<JWTClaims> {
+        let already_computing = {
+            let mut computing = self.computing.lock();
+            !computing.insert(token.to_string())
+        };
+
+        if already_computing {
+            for i in 0..50 {
+                tokio::time::sleep(Duration::from_micros(100)).await;
+                if let Some(claims) = self.get(token) {
+                    tracing::debug!("Got computed from another thread in {} attempts", i);
+                    return Some(claims);
+                }
+            }
+        }
+
+        None
+    }
+
+    pub fn unlock(&self, token: &str) {
+        self.computing.lock().remove(token);
+    }
+
     pub fn put_valid(&self, token: &str, claims: JWTClaims) {
         self.invalid.remove(&token.to_string());
         self.valid.put(token.to_string(), (claims, Instant::now()));
@@ -54,7 +78,7 @@ impl TokenCache {
 
     pub fn put_invalid(&self, token: &str) {
         self.valid.remove(&token.to_string());
-        self.invalid.put(token.to_string(), Instant::now());
+        self.invalid.put(token.to_string(), true);
     }
 
     pub fn len(&self) -> usize {

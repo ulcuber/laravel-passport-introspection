@@ -33,29 +33,40 @@ pub async fn handle(State(state): State<Arc<AppState>>, mut req: Request, next: 
         None => {
             debug!("Token cache miss, validating JWT");
 
-            let claims = match validate_jwt(&token, None) {
-                Ok(c) => c,
-                Err(e) => {
-                    debug!("{}", e);
-                    state.token_cache.put_invalid(&token);
-                    return unauthorized_response();
-                }
-            };
+            match state.token_cache.lock(&token).await {
+                Some(claims) => claims,
+                None => {
+                    let claims = match validate_jwt(&token, None) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            debug!("{}", e);
+                            state.token_cache.put_invalid(&token);
+                            state.token_cache.unlock(&token);
 
-            match state.access_tokens.is_token_revoked(&claims.jti).await {
-                Ok(false) => {
-                    state.token_cache.put_valid(&token, claims.clone());
+                            return unauthorized_response();
+                        }
+                    };
 
-                    claims
-                }
-                Ok(true) => {
-                    state.token_cache.put_invalid(&token);
+                    match state.access_tokens.is_token_revoked(&claims.jti).await {
+                        Ok(false) => {
+                            state.token_cache.put_valid(&token, claims.clone());
+                            state.token_cache.unlock(&token);
 
-                    return unauthorized_response();
-                }
-                Err(e) => {
-                    error!("Database error while checking token: {}", e);
-                    return server_error_response();
+                            claims
+                        }
+                        Ok(true) => {
+                            state.token_cache.put_invalid(&token);
+                            state.token_cache.unlock(&token);
+
+                            return unauthorized_response();
+                        }
+                        Err(e) => {
+                            error!("Database error while checking token: {}", e);
+                            state.token_cache.unlock(&token);
+
+                            return server_error_response();
+                        }
+                    }
                 }
             }
         }

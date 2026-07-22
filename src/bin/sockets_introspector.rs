@@ -110,33 +110,50 @@ async fn handle_request(
         None => {
             debug!("Token cache miss, validating JWT");
 
-            let claims = match validate_jwt(&token, None) {
-                Ok(c) => c,
-                Err(e) => {
-                    debug!("{}", e);
-                    token_cache.put_invalid(&token);
-                    return json!({ "active": false }).to_string();
-                }
-            };
-
-            match repo.is_token_revoked(&claims.jti).await {
-                Ok(false) => {
-                    token_cache.put_valid(&token, claims.clone());
-
+            match token_cache.lock(&token).await {
+                Some(claims) => {
                     return json!({
                         "active": true,
                         "sub": claims.sub,
                     })
                     .to_string();
                 }
-                Ok(true) => {
-                    token_cache.put_invalid(&token);
+                None => {
+                    let claims = match validate_jwt(&token, None) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            debug!("{}", e);
+                            token_cache.put_invalid(&token);
+                            token_cache.unlock(&token);
 
-                    return json!({ "active": false }).to_string();
-                }
-                Err(e) => {
-                    error!("Database error while checking token: {}", e);
-                    return json!({ "message": "Database error" }).to_string();
+                            return json!({ "active": false }).to_string();
+                        }
+                    };
+
+                    match repo.is_token_revoked(&claims.jti).await {
+                        Ok(false) => {
+                            token_cache.put_valid(&token, claims.clone());
+                            token_cache.unlock(&token);
+
+                            return json!({
+                                "active": true,
+                                "sub": claims.sub,
+                            })
+                            .to_string();
+                        }
+                        Ok(true) => {
+                            token_cache.put_invalid(&token);
+                            token_cache.unlock(&token);
+
+                            return json!({ "active": false }).to_string();
+                        }
+                        Err(e) => {
+                            error!("Database error while checking token: {}", e);
+                            token_cache.unlock(&token);
+
+                            return json!({ "message": "Database error" }).to_string();
+                        }
+                    }
                 }
             }
         }
