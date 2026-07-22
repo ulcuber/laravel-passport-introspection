@@ -67,7 +67,7 @@ async fn generate_and_insert_tokens(
         .truncate(true)
         .open(tokens_path)?;
 
-    for i in 0..count {
+    for i in 1..count + 1 {
         let jti = Uuid::new_v4().to_string();
 
         let claims = JWTClaims {

@@ -7,9 +7,9 @@ set +a
 ACCESS_TOKEN=$(shuf -n 1 wrk/tokens_RS256.txt)
 
 # -v to print request, -X POST
-RESPONSE=$(curl -v -i "$PROXY_URL" \
+RESPONSE=$(curl -i "$PROXY_URL" \
     -H "Accept: application/json" \
-    -H "Authorization: $ACCESS_TOKEN")
+    -H "Authorization: Bearer $ACCESS_TOKEN")
 
 # handle Laravel dd()
 HTML=$(echo "$RESPONSE" | grep -A1000 "Sfdump")

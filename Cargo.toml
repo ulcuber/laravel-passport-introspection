@@ -1,6 +1,6 @@
 [package]
 name = "laravel-passport-introspection"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 description = "Simple Laravel Passport JWT tokens validator and introspector. Connects to the same database as Authorization Server and used as Auth middleware for Nginx/Ingress/Traefik"
 repository = "https://github.com/ulcuber/laravel-passport-introspection"

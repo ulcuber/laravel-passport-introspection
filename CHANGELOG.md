@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-23
+
+### Fixed
+
+- Tokens factory ids from 1 instead of 0
+
+### Added
+
+- Measured Authorization Server RPS
+
 ## [0.2.0] - 2026-07-22
 
 ### Fixed

@@ -178,6 +178,57 @@ Requests/sec:   2657.78
 Transfer/sec:      5.52MB
 ```
 
+# Laravel Octane Authorization Server (Passport ID)
+
+Does PHP side cryptography + Token and Client DB checks
+
+Requires existing user for `Laravel\Passport\Guards\TokenGuard`:
+
+```php
+<?php
+
+$user = $this->provider->retrieveById($oauthUserId);
+```
+
+So user route will receive the same user from guard
+
+Because of that use Laravel seeder after rust tokens factory to generate users for existing tokens:
+
+```bash
+php artisan db:seed
+```
+
+```env
+PROXY_URL=http://localhost:8007/api/oidc-user
+```
+
+
+Pre-check: `./scripts/curl_env_proxy.sh`
+
+```bash
+# app
+php artisan octane:start --port=8007
+
+./wrk/wrk_env_proxy.sh rotate_valid_tokens_proxy
+```
+
+```
+Running 1m test @ http://localhost:8007/api/oidc-user
+  12 threads and 400 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   281.65ms   50.80ms 489.68ms   88.81%
+    Req/Sec   118.09     52.87   343.00     65.86%
+  Latency Distribution
+     50%  265.78ms
+     75%  282.58ms
+     90%  367.43ms
+     99%  452.22ms
+  84306 requests in 1.00m, 20.33MB read
+  Non-2xx or 3xx responses: 107
+Requests/sec:   1402.81
+Transfer/sec:    346.40KB
+```
+
 # Rust app no auth (valkey cache, TCP)
 
 ```env
